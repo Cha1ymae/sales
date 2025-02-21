@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sales/models/user.dart'; // Modèle UserModel
+import 'package:sales/models/user.dart';
 
 class AuthController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -20,7 +20,7 @@ class AuthController {
     }
   }
 
-  // 📝 Inscription avec rôle
+  // 📝 Inscription + enregistrement dans Firestore
   Future<User?> signUp({
     required String name,
     required String email,
@@ -29,12 +29,13 @@ class AuthController {
     required String role, // commercial ou technicien
   }) async {
     try {
+      // Étape 1 : Création de l'utilisateur avec Firebase Auth
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Création de l'utilisateur Firestore
+      // Étape 2 : Création du modèle utilisateur
       UserModel newUser = UserModel(
         userId: userCredential.user!.uid,
         name: name,
@@ -46,20 +47,22 @@ class AuthController {
         createdAt: DateTime.now(),
       );
 
+      // Étape 3 : Enregistrement dans Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set(newUser.toMap());
 
       return userCredential.user;
     } catch (e) {
-      print(" Erreur d'inscription : $e");
+      print("⚠ Erreur d'inscription : $e");
       return null;
     }
   }
 
+  // 🔄 Écouteur de l'état de connexion
   Stream<User?> authStateChanges() {
     return _auth.authStateChanges();
   }
 
-  
+  // 🚪 Déconnexion
   Future<void> signOut() async {
     await _auth.signOut();
   }
