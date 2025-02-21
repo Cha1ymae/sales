@@ -20,22 +20,45 @@ class _AddSalePageState extends State<AddSalePage> {
   void initState() {
     super.initState();
     _userId = FirebaseAuth.instance.currentUser?.uid;
-    
   }
 
   Future<void> _addSale() async {
-    if (_clientController.text.isEmpty || _amountController.text.isEmpty || _productController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Veuillez remplir tous les champs.")));
+    if (_clientController.text.isEmpty ||
+        _productController.text.isEmpty ||
+        _amountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Veuillez remplir tous les champs.")),
+      );
+      return;
+    }
+
+    if (_userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur : utilisateur non identifié.")),
+      );
       return;
     }
 
     String saleId = FirebaseFirestore.instance.collection('sales').doc().id;
 
+    // Vérifier si le document existe avant d'accéder aux données
+    DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+        .collection("sales")
+        .doc(_userId) //  Correction ici (_userId au lieu de userId)
+        .get();
+
+    int salesCount = 0;
+    if (docSnapshot.exists) {
+      salesCount = docSnapshot.get("salesCount") ?? 0;
+    } else {
+      print(" Le document n'existe pas encore.");
+    }
+
     Sale newSale = Sale(
       saleId: saleId,
       commercialId: _userId!,
       clientName: _clientController.text.trim(),
-      product: _productController.text.trim(), 
+      product: _productController.text.trim(),
       amount: double.parse(_amountController.text.trim()),
       status: 'vendu',
       createdAt: DateTime.now(),
@@ -43,7 +66,9 @@ class _AddSalePageState extends State<AddSalePage> {
 
     await _salesController.ajouterVente(newSale);
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Vente ajoutée avec succès !")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Vente ajoutée avec succès !")),
+    );
 
     Navigator.pop(context);
   }
@@ -57,7 +82,7 @@ class _AddSalePageState extends State<AddSalePage> {
         child: Column(
           children: [
             TextField(controller: _clientController, decoration: InputDecoration(labelText: "Nom du client")),
-            TextField(controller: _productController, decoration: InputDecoration(labelText: "Produit vendu")), 
+            TextField(controller: _productController, decoration: InputDecoration(labelText: "Produit vendu")),
             TextField(controller: _amountController, decoration: InputDecoration(labelText: "Montant"), keyboardType: TextInputType.number),
             SizedBox(height: 20),
             ElevatedButton(

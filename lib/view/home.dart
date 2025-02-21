@@ -28,7 +28,7 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Affichage du nombre de ventes
+            //  Nombre total de ventes
             StreamBuilder<int>(
               stream: _salesController.obtenirNombreVentes(),
               builder: (context, snapshot) {
@@ -46,6 +46,7 @@ class HomePage extends StatelessWidget {
               },
             ),
             SizedBox(height: 20),
+            
             // Bouton pour ajouter une vente
             ElevatedButton(
               onPressed: () {
@@ -57,18 +58,22 @@ class HomePage extends StatelessWidget {
               child: Text("Ajouter une vente"),
             ),
             SizedBox(height: 20),
-            // Liste des ventes de l'utilisateur connecté
+
+            //  Liste des ventes de l'utilisateur connecté
             Expanded(
               child: StreamBuilder<List<Sale>>(
                 stream: _salesController.obtenirVentesUtilisateur(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
 
-                  var ventes = snapshot.data!;
-                  if (ventes.isEmpty) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Center(child: Text("Aucune vente enregistrée."));
                   }
 
+                  var ventes = snapshot.data!;
                   return ListView.builder(
                     itemCount: ventes.length,
                     itemBuilder: (context, index) {

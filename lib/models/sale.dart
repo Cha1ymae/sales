@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Sale {
   String saleId;
   String commercialId;
@@ -29,15 +31,20 @@ class Sale {
     };
   }
 
-  static Sale fromMap(Map<String, dynamic> map) {
-    return Sale(
-      saleId: map['saleId'],
-      commercialId: map['commercialId'],
-      clientName: map['clientName'],
-      product: map['product'],
-      amount: map['amount'],
-      status: map['status'],
-      createdAt: DateTime.parse(map['createdAt']),
-    );
-  }
+
+  
+  factory Sale.fromMap(Map<String, dynamic> map) {
+  return Sale(
+    saleId: map['id'] ?? 'unknown',
+    commercialId: map['commercialId'] ?? 'unknown',
+    clientName: map['clientName'] ?? 'unknown',
+    product: map['product'] ?? 'Aucun produit',
+    amount: (map['amount'] ?? 0).toDouble(),
+    status: map['status'] ?? 'inconnu',
+    createdAt: map['createdAt'] is Timestamp
+        ? (map['createdAt'] as Timestamp).toDate()
+        : DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now()
+  );
+}
+
 }
