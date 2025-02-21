@@ -8,20 +8,28 @@ class SalesListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Ventes en temps réel")),
+      appBar: AppBar(title: Text("Mes ventes")),
       body: StreamBuilder<List<Sale>>(
-        stream: _salesController.obtenirVentes(),
+        stream: _salesController.obtenirVentesUtilisateur(), 
         builder: (context, snapshot) {
           if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-          
+
           var ventes = snapshot.data!;
+          if (ventes.isEmpty) {
+            return Center(child: Text("Vous n'avez encore enregistré aucune vente."));
+          }
+
           return ListView.builder(
             itemCount: ventes.length,
             itemBuilder: (context, index) {
               var vente = ventes[index];
-              return ListTile(
-                title: Text("${vente.clientName} - ${vente.product}"),
-                subtitle: Text("Montant: ${vente.amount} € - Statut: ${vente.status}"),
+              return Card(
+                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: ListTile(
+                  title: Text("Client : ${vente.clientName}"),
+                  subtitle: Text("Montant: ${vente.amount} € - Statut: ${vente.status}"),
+                  trailing: Text(vente.createdAt.toString().substring(0, 16)), // Date formatée
+                ),
               );
             },
           );

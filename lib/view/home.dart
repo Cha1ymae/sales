@@ -1,66 +1,94 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:sales/controllers/auth_controller.dart';
-import 'package:sales/view/add_sale.dart'; // Importer la page pour ajouter une vente
-import 'package:sales/view/auth.dart';
-import 'package:sales/view/sales_list.dart'; // Importer la page pour voir les ventes validées
+import 'package:sales/controllers/sales_controller.dart';
+import 'package:sales/models/sale.dart';
+import 'package:sales/view/add_sale.dart';
+import 'package:sales/view/leaderboard.dart'; 
 
 class HomePage extends StatelessWidget {
-  final AuthController _authController = AuthController();
-
-  // Méthode pour récupérer le rôle de l'utilisateur depuis Firestore
-  Future<String?> _getUserRole(String userId) async {
-    try {
-      var userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-      if (userDoc.exists) {
-        return userDoc['role']; // Récupère le rôle (commercial ou technicien)
-      }
-      return null; // Si le rôle n'existe pas
-    } catch (e) {
-      print('Erreur de récupération du rôle: $e');
-      return null;
-    }
-  }
+  final SalesController _salesController = SalesController();
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: _authController.authStateChanges(), // Écouteur d'état de l'authentification
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasData) {
-          // Utilisateur connecté
-          String userId = snapshot.data!.uid;
-
-          return FutureBuilder<String?>(
-            future: _getUserRole(userId), // Obtenir le rôle de l'utilisateur
-            builder: (context, roleSnapshot) {
-              if (roleSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              } else if (roleSnapshot.hasData) {
-                String role = roleSnapshot.data!;
-
-                if (role == 'commercial') {
-                  // Si l'utilisateur est un commercial, on affiche la page pour ajouter une vente
-                  return AddSalePage(); // Ou bien une page comme "Vendre"
-                } else if (role == 'technicien') {
-                  // Si l'utilisateur est un technicien, on affiche la page des ventes validées
-                  return SalesListPage(); // Voir les ventes validées
-                } else {
-                  return Scaffold(body: Center(child: Text('Rôle inconnu')));
-                }
-              } else {
-                return Scaffold(body: Center(child: Text('Erreur de récupération du rôle')));
-              }
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Tableau de bord"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.leaderboard),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => LeaderboardPage()),
+              );
             },
-          );
-        } else {
-          // Si l'utilisateur n'est pas connecté, on affiche l'écran de connexion
-          return AuthPage(); 
-        }
-      },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Affichage du nombre de ventes
+            StreamBuilder<int>(
+              stream: _salesController.obtenirNombreVentes(),
+              builder: (context, snapshot) {
+                int nombreVentes = snapshot.data ?? 0;
+                return Card(
+                  elevation: 4,
+                  child: ListTile(
+                    title: Text(
+                      "Total des ventes",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text("$nombreVentes ventes réalisées"),
+                  ),
+                );
+              },
+            ),
+            SizedBox(height: 20),
+            // Bouton pour ajouter une vente
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddSalePage()),
+                );
+              },
+              child: Text("Ajouter une vente"),
+            ),
+            SizedBox(height: 20),
+            // Liste des ventes de l'utilisateur connecté
+            Expanded(
+              child: StreamBuilder<List<Sale>>(
+                stream: _salesController.obtenirVentesUtilisateur(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+
+                  var ventes = snapshot.data!;
+                  if (ventes.isEmpty) {
+                    return Center(child: Text("Aucune vente enregistrée."));
+                  }
+
+                  return ListView.builder(
+                    itemCount: ventes.length,
+                    itemBuilder: (context, index) {
+                      var vente = ventes[index];
+                      return Card(
+                        margin: EdgeInsets.symmetric(vertical: 8),
+                        child: ListTile(
+                          title: Text("Client : ${vente.clientName}"),
+                          subtitle: Text("Montant: ${vente.amount} € - Statut: ${vente.status}"),
+                          trailing: Text(vente.createdAt.toString().substring(0, 16)), // Date formatée
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

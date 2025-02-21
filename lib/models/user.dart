@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   String userId;
   String name;
@@ -21,6 +23,7 @@ class UserModel {
     required this.createdAt,
   });
 
+  /// Convertit l'objet en Map pour Firestore
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,
@@ -35,17 +38,39 @@ class UserModel {
     };
   }
 
+  /// Crée un objet `UserModel` à partir d'une Map
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
-      userId: map['userId'],
-      name: map['name'],
-      role: map['role'],
-      email: map['email'],
-      phone: map['phone'],
+      userId: map['userId'] ?? '',
+      name: map['name'] ?? 'Inconnu',
+      role: map['role'] ?? 'commercial',
+      email: map['email'] ?? '',
+      phone: map['phone'] ?? '',
       salesCount: map['salesCount'] ?? 0,
       totalRevenue: (map['totalRevenue'] ?? 0.0).toDouble(),
       fcmToken: map['fcmToken'],
-      createdAt: DateTime.parse(map['createdAt']),
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'])
+          : DateTime.now(), // Valeur par défaut
     );
   }
+
+  factory UserModel.fromFirestore(DocumentSnapshot doc) {
+  Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+  return UserModel(
+    userId: doc.id,
+    name: data['name'] ?? 'Inconnu',
+    role: data['role'] ?? 'commercial',
+    email: data['email'] ?? '',
+    phone: data['phone'] ?? '',
+    salesCount: (data['salesCount'] ?? 0).toInt(),
+    totalRevenue: (data['totalRevenue'] ?? 0.0).toDouble(),
+    createdAt: data['createdAt'] != null
+        ? DateTime.tryParse(data['createdAt']) ?? DateTime.now()
+        : DateTime.now(),
+  );
 }
+
+  }
+
