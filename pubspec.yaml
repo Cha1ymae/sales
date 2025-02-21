@@ -39,7 +39,9 @@ dependencies:
   cloud_firestore: ^5.6.4
   provider: ^6.1.2
   firebase_ui_auth: ^1.16.1
-
+  http: ^1.1.0
+  firebase_messaging: ^15.2.3
+  flutter_local_notifications: ^16.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
