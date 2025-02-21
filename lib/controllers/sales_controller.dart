@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import 'package:sales/models/sale.dart';
 import 'package:sales/models/user.dart';
 
@@ -33,6 +36,8 @@ Future<void> ajouterVente(Sale vente) async {
         'totalRevenue': vente.amount,
       });
     }
+        await envoyerNotification(vente.commercialId, "Nouvelle Vente ! 🎉", "${vente.clientName} a acheté ${vente.product} pour ${vente.amount}€ !");
+
   });
 
   // Vérifier les données Firestore immédiatement après la mise à jour
@@ -90,4 +95,34 @@ Future<void> ajouterVente(Sale vente) async {
           return snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
         });
   }
+  Future<void> envoyerNotification(String userId, String titre, String message) async {
+    String serverKey = "BGcUnrN-aVEsrn0cpkVDcfqC9Jk9HaUA3YvSN9cS0XCz3xQI5NXOBoEmKa0VAAwh1qe018cSeh02HEkPSVWQZ_o";
+
+    DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+    String? fcmToken = userDoc['fcmToken'];
+
+    if (fcmToken != null) {
+      var data = {
+        "to": fcmToken,
+        "notification": {
+          "title": titre,
+          "body": message,
+        },
+      };
+
+      await http.post(
+        Uri.parse("https://fcm.googleapis.com/fcm/send"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "key=$serverKey",
+        },
+        body: jsonEncode(data),
+      );
+
+      print(" Notification envoyée à $userId !");
+    } else {
+      print("⚠ Aucune notification envoyée, `fcmToken` introuvable !");
+    }
+  }
 }
+
